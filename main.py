@@ -5,7 +5,6 @@ from game.gui_tk import run_gui
 def main():
     dict_path = "data/words.txt"
 
-    # Đổi MODE = "CONSOLE" nếu muốn chơi bản terminal
     MODE = "GUI"
 
     if MODE == "CONSOLE":
