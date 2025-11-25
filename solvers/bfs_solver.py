@@ -33,18 +33,16 @@ def build_graph(words: List[str]) -> Dict[str, List[str]]:
     return graph
 
 
-def bfs_solve(start: str, goal: str, words: List[str]) -> Optional[List[str]]:
+def bfs_solve(start: str, goal: str, words: List[str], graph) -> Optional[List[str]]:
     """
     Tìm đường đi ngắn nhất từ start -> goal bằng BFS (Word Ladder style).
     Trả về list các từ [start, ..., goal] hoặc None nếu không có đường.
     """
     start = start.upper()
     goal = goal.upper()
-
     if start not in words or goal not in words:
         raise ValueError("start và goal phải nằm trong dictionary")
 
-    graph = build_graph(words)
 
     queue = deque([start])
     parent: Dict[str, Optional[str]] = {start: None}
