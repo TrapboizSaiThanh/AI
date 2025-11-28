@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 from tkinter import messagebox
 from typing import List
@@ -52,6 +53,9 @@ class WordleGUI:
         self.root.bind("<Key>", self.on_physical_key)
         self.root.bind("<BackSpace>", lambda e: self.on_backspace())
         self.root.bind("<Return>", lambda e: self.on_enter())
+
+        self.solver_thread = None
+        self.stop_solver = False
 
         # Tạo sẵn 6 hàng trống
         for _ in range(6):
@@ -110,7 +114,7 @@ class WordleGUI:
 
         win.title("Settings")
         win.configure(bg=COLOR_BG)
-        win.geometry("300x350")
+        win.geometry("300x400")
 
         # Khi user đóng cửa sổ 
         def on_close():
@@ -163,6 +167,23 @@ class WordleGUI:
             command=self.restart_game
         ).pack(pady=10)
 
+        tk.Button(
+            win, text="STOP SOLVER",
+            font=("Helvetica", 14, "bold"),
+            bg="#AA3333", fg="white",
+            command=self.stop_current_solver
+        ).pack(pady=10)
+
+    def stop_current_solver(self):
+        print("[STOP] stopping solver...")
+        self.stop_solver = True
+
+        # Nếu thread còn sống thì chờ một chút để nó thoát
+        if self.solver_thread and self.solver_thread.is_alive():
+            self.solver_thread.join(timeout=0.1)
+
+        print("[STOP] solver stopped.")
+
     def restart_game(self):
         """Reset toàn bộ game về trạng thái ban đầu."""
 
@@ -192,33 +213,75 @@ class WordleGUI:
         # Scroll về đầu
         self.canvas.yview_moveto(0.0)
 
+    # 
     def run_solver(self, mode):
         if self.game_over:
             return
 
-        start_word = self.cells_all_rows[0][0].cget("text") or self.words[0]
+        # Nếu solver đang chạy → không cho chạy thêm
+        if self.solver_thread and self.solver_thread.is_alive():
+            messagebox.showinfo("Solver", "Solver đang chạy!")
+            return
+
+        # Reset stop flag
+        self.stop_solver = False
+
+        # Tạo thread mới để chạy solver
+        self.solver_thread = threading.Thread(
+            target=self._run_solver_thread,
+            args=(mode,),
+            daemon=True
+        )
+        self.solver_thread.start()
+
+    def _run_solver_thread(self, mode):
+        start_word = self.words[0]
         goal_word = self.secret
 
-        if mode == "bfs":
-            path = bfs_solve(start_word, goal_word, self.words, self.graph)
-        elif mode == "dfs":
-            path = ids_solve(start_word, goal_word, self.words, self.graph)
+        path = None
+
+        # chọn solver
+        if mode == "bfs":     
+            path = bfs_solve(
+                start_word, 
+                goal_word, 
+                self.words, 
+                self.graph,
+                )
+
+        elif mode == "dfs":  # IDS
+            path = ids_solve(
+                start_word, goal_word, self.words, self.graph,
+                stop_flag=lambda: self.stop_solver
+            )
+
         elif mode == "ucs":
-            path = ucs_solve(start_word, goal_word, self.words, self.graph)
+            path = ucs_solve(
+                start_word, 
+                goal_word, 
+                self.words, 
+                self.graph,
+                )
+
         elif mode == "astar":
             path = astar_solve(start_word, goal_word, self.words, self.graph)
-        else:
+
+        # Nếu bị dừng giữa chừng -> thoát silently
+        if self.stop_solver:
+            print("[THREAD] Solver stopped early.")
             return
 
+        # Nếu không có path
         if not path:
-            messagebox.showwarning("No path", "Không tìm được đường đi!")
+            self.root.after(0, lambda: messagebox.showwarning("No path", "Không tìm được đường đi!"))
             return
 
-        # Loại bỏ start_word vì solver spit cả start
+        # Loại bỏ start nếu cần
         if path[0] == start_word:
             path = path[1:]
 
-        self.run_guess_sequence(path)
+        # CHẠY TRONG MAIN THREAD
+        self.root.after(0, lambda: self.run_guess_sequence(path))
 
     def run_guess_sequence(self, guesses):
         self.solver_guesses = guesses
