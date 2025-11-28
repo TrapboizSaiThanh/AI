@@ -40,7 +40,7 @@ def main():
         run_gui(words, graph)
     # words = load_words(dict_path)
     # graph = load_graph_cache(dict_path, words)
-    # print(ids_solve("ARISE", "BOTOS", words, graph))
+    # print(bfs_solve("FOSSA", "DERNS", words, graph))
     
 
 if __name__ == "__main__":
