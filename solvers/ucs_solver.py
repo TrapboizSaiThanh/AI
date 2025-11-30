@@ -3,6 +3,25 @@
 from heapq import heappush, heappop
 from typing import List, Dict, Optional
 
+letter_freq_cost = {
+    'E': 1, 
+    
+    'A': 2, 'R': 2, 'I': 2, 'O': 2, 'T': 2, 'N': 2, 'S': 2, 'L': 2,
+
+    'C': 3, 'U': 3, 'D': 3, 'P': 3, 'M': 3, 'H': 3,
+
+    'G': 4, 'B': 4, 'F': 4, 'Y': 4, 'W': 4,
+
+    'K': 5, 'V': 5, 'X': 5, 'Z': 5, 'J': 5, 'Q': 5,
+}
+
+def step_cost(from_word: str, to_word: str) -> int:
+    """Cost = frequency score of the changed letter."""
+    for a, b in zip(from_word, to_word):
+        if a != b:
+            return letter_freq_cost[b]  # cost depends on new letter
+    return 1
+
 
 def ucs_solve(start: str, goal: str, words: List[str], graph) -> Optional[List[str]]:
     """
@@ -37,7 +56,8 @@ def ucs_solve(start: str, goal: str, words: List[str], graph) -> Optional[List[s
             return path
 
         for v in graph[u]:
-            new_cost = g + 1  # step cost = 1
+            step_c = step_cost(u, v)
+            new_cost = g + step_c  # step cost = 1
             if v not in cost or new_cost < cost[v]:
                 cost[v] = new_cost
                 parent[v] = u

@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 
 from game.logic import load_words
 from solvers.bfs_solver import build_graph
+from solvers.ucs_solver import step_cost
 
 
 # ======================= HELPER =======================
@@ -135,7 +136,8 @@ def ucs_experiment(start: str, goal: str, graph: Dict[str, List[str]]):
             return list(reversed(path)), expanded, peak_mem
 
         for v in graph[u]:
-            new_cost = g + 1
+            step_c = step_cost(u, v)
+            new_cost = g + step_c
             if v not in cost or new_cost < cost[v]:
                 cost[v] = new_cost
                 parent[v] = u
